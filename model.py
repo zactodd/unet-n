@@ -1,18 +1,26 @@
-from keras.models import *
+from keras.models import Model, Input
 from keras.layers import Conv2D, MaxPooling2D, Dropout, UpSampling2D, concatenate
 from keras.optimizers import Adam
+from typing import Tuple, Optional
 
 
-def unet_n(pretrained_weights=None, input_size=(256, 256, 1), depth=5):
+def unet_n(n: int = 5, input_size: Tuple[int] = (256, 256, 1), pretrained_weights: Optional[str] = None) -> Model:
+    """
+    Unet-n model.
+    :param n: The the number of down layers.
+    :param input_size: The input size.
+    :param pretrained_weights: If not None, the path to the pretrained weights.
+    :return: The model.
+    """
 
     inputs = Input(input_size)
     prev_layers = []
 
     # Up and down filters
-    filters = [64 * 2 ** i for i in range(depth - 2)]
+    filters = [64 * 2 ** i for i in range(n - 2)]
 
     # Bridge filters
-    filter_prev_n = 64 * 2 ** (depth - 1)
+    filter_prev_n = 64 * 2 ** (n - 1)
     filter_n = 2 * filter_prev_n
 
     outputs = inputs.copy()
