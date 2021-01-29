@@ -11,14 +11,16 @@ def unet_n(n: int = 5, input_size: Tuple[int] = (256, 256, 1), pretrained_weight
     :param input_size: The input size.
     :param pretrained_weights: If not None, the path to the pretrained weights.
     :return: The model.
+    :raise AssertionError: Raises error if n < 1.
     """
+    assert n >= 1, f'n need to be greater or equal to zero, not {n}.'
 
     inputs = Input(input_size)
     prev_layers = []
 
     # Up and down filters (without n-1 or n+1)
     filters = [64 * 2 ** i for i in range(n - 2)]
-
+    print(filters)
     # Bridge filters (n-1, n+1 and n)
     filter_prev_n = 64 * 2 ** (n - 2)
     filter_n = 2 * filter_prev_n
