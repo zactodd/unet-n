@@ -16,16 +16,16 @@ def unet_n(n: int = 5, input_size: Tuple[int] = (256, 256, 1), pretrained_weight
     inputs = Input(input_size)
     prev_layers = []
 
-    # Up and down filters
+    # Up and down filters (without n-1 or n+1)
     filters = [64 * 2 ** i for i in range(n - 2)]
 
-    # Bridge filters
-    filter_prev_n = 64 * 2 ** (n - 1)
+    # Bridge filters (n-1, n+1 and n)
+    filter_prev_n = 64 * 2 ** (n - 2)
     filter_n = 2 * filter_prev_n
 
-    outputs = inputs.copy()
+    outputs = inputs
 
-    # Down layers
+    # Down layers (1 to n-2)
     for f in filters:
         cov = Conv2D(f, 3, activation='relu', padding='same', kernel_initializer='he_normal')(outputs)
         cov = Conv2D(f, 3, activation='relu', padding='same', kernel_initializer='he_normal')(cov)
@@ -53,7 +53,7 @@ def unet_n(n: int = 5, input_size: Tuple[int] = (256, 256, 1), pretrained_weight
         (merge_post_n)
     outputs = Conv2D(filter_prev_n, 3, activation='relu', padding='same', kernel_initializer='he_normal')(cov_post_n)
 
-    # Up layers
+    # Up layers (n+2 to 2n-1)
     for f, l in zip(reversed(filters), reversed(prev_layers)):
         up = Conv2D(f, 2, activation='relu', padding='same', kernel_initializer='he_normal')(
             UpSampling2D(size=(2, 2))(outputs))
@@ -61,11 +61,11 @@ def unet_n(n: int = 5, input_size: Tuple[int] = (256, 256, 1), pretrained_weight
         cov = Conv2D(f, 3, activation='relu', padding='same', kernel_initializer='he_normal')(merge)
         outputs = Conv2D(f, 3, activation='relu', padding='same', kernel_initializer='he_normal')(cov)
 
-    # Exit
+    # Result
     outputs = Conv2D(2, 3, activation='relu', padding='same', kernel_initializer='he_normal')(outputs)
     outputs = Conv2D(1, 1, activation='sigmoid')(outputs)
 
-    model = Model(input=inputs, output=outputs)
+    model = Model(inputs=inputs, outputs=outputs)
     model.compile(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=['accuracy'])
 
     if pretrained_weights is not None:
