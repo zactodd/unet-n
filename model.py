@@ -13,7 +13,7 @@ def unet_n(n: int = 5, input_size: Tuple[int] = (256, 256, 1), pretrained_weight
     :return: The model.
     :raise AssertionError: Raises error if n < 1.
     """
-    assert n >= 1, f'n need to be greater or equal to zero, not {n}.'
+    assert n >= 1, f'n need to be greater or equal to 1, not {n}.'
 
     inputs = Input(input_size)
     prev_layers = []
