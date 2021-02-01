@@ -42,7 +42,7 @@ def unet_n(n: int = 5, input_size: Tuple[int] = (256, 256, 1), pretrained_weight
 
     # Up and down filters (without n-1 or n+1)
     filters = [64 * 2 ** i for i in range(n - 2)]
-    print(filters)
+
     # Bridge filters (n-1, n+1 and n)
     filter_prev_n = 64 * 2 ** (n - 2)
     filter_n = 2 * filter_prev_n
