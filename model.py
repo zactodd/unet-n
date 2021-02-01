@@ -4,6 +4,18 @@ from keras.optimizers import Adam
 from typing import Tuple, Optional, Union
 
 
+def _down_layers(input, filter, activation, padding, kernel_initializer):
+    cov = Conv2D(filter, 3, activation=activation, padding=padding, kernel_initializer=kernel_initializer)(input)
+    return Conv2D(filter, 3, activation=activation, padding=padding, kernel_initializer=kernel_initializer)(cov)
+
+
+def _up_layers(input, skip, filter, activation, padding, kernel_initializer):
+    up = Conv2D(filter, 2, activation=activation, padding=padding, kernel_initializer=kernel_initializer) \
+        (UpSampling2D(size=(2, 2))(input))
+    merge = concatenate([skip, up], axis=3)
+    return _down_layers(merge, filter, activation, padding, kernel_initializer)
+
+
 def unet_n(n: int = 5, input_size: Tuple[int] = (256, 256, 1), pretrained_weights: Optional[str] = None,
            activation='relu', padding='same', kernel_initializer='he_normal',
            learning_rate: float = 1e-4, loss='binary_crossentropy', metrics=['accuracy'],
@@ -39,44 +51,25 @@ def unet_n(n: int = 5, input_size: Tuple[int] = (256, 256, 1), pretrained_weight
 
     # Down layers (1 to n-2)
     for f in filters:
-        cov = Conv2D(f, 3, activation=activation, padding=padding, kernel_initializer=kernel_initializer)(outputs)
-        cov = Conv2D(f, 3, activation=activation, padding=padding, kernel_initializer=kernel_initializer)(cov)
-
+        cov = _down_layers(outputs, f, activation, padding, kernel_initializer)
         prev_layers.append(cov)
-
         outputs = MaxPooling2D(pool_size=(2, 2))(cov)
 
     # Bridge n-1
-    cov_prev_n = Conv2D(filter_prev_n, 3, activation=activation, padding=padding, 
-                        kernel_initializer=kernel_initializer)(outputs)
-    cov_prev_n = Conv2D(filter_prev_n, 3, activation=activation, padding=padding, 
-                        kernel_initializer=kernel_initializer)(cov_prev_n)
+    cov_prev_n = _down_layers(outputs, filter_prev_n, activation, padding, kernel_initializer)
     drop_prev_n = Dropout(0.5)(cov_prev_n)
     pool_prev_n = MaxPooling2D(pool_size=(2, 2))(drop_prev_n)
 
     # Bridge n
-    cov_n = Conv2D(filter_n, 3, activation=activation, padding=padding, 
-                   kernel_initializer=kernel_initializer)(pool_prev_n)
-    cov_n = Conv2D(filter_n, 3, activation=activation, padding=padding, 
-                   kernel_initializer=kernel_initializer)(cov_n)
+    cov_n = _down_layers(pool_prev_n, filter_n, activation, padding, kernel_initializer)
     drop_n = Dropout(0.5)(cov_n)
 
     # Bridge n+1
-    up_post_n = Conv2D(filter_prev_n, 2, activation=activation, padding=padding, kernel_initializer=kernel_initializer)\
-            (UpSampling2D(size=(2, 2))(drop_n))
-    merge_post_n = concatenate([drop_prev_n, up_post_n], axis=3)
-    cov_post_n = Conv2D(filter_prev_n, 3, activation=activation, padding=padding, kernel_initializer=kernel_initializer)\
-        (merge_post_n)
-    outputs = Conv2D(filter_prev_n, 3, activation=activation, padding=padding, kernel_initializer=kernel_initializer)\
-        (cov_post_n)
+    outputs = _up_layers(drop_n, drop_prev_n, filter_prev_n, activation, padding, kernel_initializer)
 
     # Up layers (n+2 to 2n-1)
-    for f, l in zip(reversed(filters), reversed(prev_layers)):
-        up = Conv2D(f, 2, activation=activation, padding=padding, kernel_initializer=kernel_initializer)\
-                (UpSampling2D(size=(2, 2))(outputs))
-        merge = concatenate([l, up], axis=3)
-        cov = Conv2D(f, 3, activation=activation, padding=padding, kernel_initializer=kernel_initializer)(merge)
-        outputs = Conv2D(f, 3, activation=activation, padding=padding, kernel_initializer=kernel_initializer)(cov)
+    for l, f in zip(reversed(prev_layers), reversed(filters)):
+        outputs = _up_layers(outputs, l, f, activation, padding, kernel_initializer)
 
     # Result
     outputs = Conv2D(2, 3, activation=activation, padding=padding, kernel_initializer=kernel_initializer)(outputs)
