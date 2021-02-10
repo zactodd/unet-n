@@ -2,3 +2,4 @@ keras
 numpy
 scikit-image
 tensorflow
+pydot
