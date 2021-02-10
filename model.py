@@ -1,7 +1,7 @@
 from keras.models import Model, Input
 from keras.layers import Conv2D, MaxPooling2D, Dropout, UpSampling2D, concatenate
 from keras.optimizers import Adam
-from typing import Tuple, Optional, Union
+from typing import Tuple, Optional
 
 
 def _down_layers(input, filter, activation, padding, kernel_initializer):
@@ -16,7 +16,7 @@ def _up_layers(input, skip, filter, activation, padding, kernel_initializer):
     return _down_layers(merge, filter, activation, padding, kernel_initializer)
 
 
-def unet_n(n: int = 5, input_size: Tuple[int] = (256, 256, 1), pretrained_weights: Optional[str] = None,
+def unet_n(n: int = 5, input_size: Tuple[int, int, int] = (256, 256, 1), pretrained_weights: Optional[str] = None,
            activation='relu', padding='same', kernel_initializer='he_normal',
            learning_rate: float = 1e-4, loss='binary_crossentropy', metrics=['accuracy'],
            output_activation="sigmoid") -> Model:
